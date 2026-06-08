@@ -1,44 +1,40 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
-
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-
-import { User } from './users/entities/user.entity';
-import { Doctor } from './doctor/entities/doctor.entity';
-import { Patient } from './patient/entities/patient.entity';
-
+import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { DoctorModule } from './doctor/doctor.module';
 import { PatientModule } from './patient/patient.module';
-import { AuthModule } from './auth/auth.module';
+import { User } from './users/entities/user.entity';
+import { DoctorProfile } from './doctor/entities/doctor-profile.entity';
+import { PatientProfile } from './patient/entities/patient-profile.entity';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
+    ConfigModule.forRoot({ isGlobal: true }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get<string>('DB_HOST', 'localhost'),
+        port: config.get<number>('DB_PORT', 5432),
+        username: config.get<string>('DB_USERNAME', 'postgres'),
+        password: config.get<string>('DB_PASSWORD', 'postgres'),
+        database: config.get<string>('DB_NAME', 'schedula'),
+        entities: [User, DoctorProfile, PatientProfile],
+        migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+        synchronize: false,
+        migrationsRun: false,
+      }),
     }),
-
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST,
-      port: Number(process.env.DB_PORT),
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-
-      entities: [User, Doctor, Patient],
-
-      synchronize: true,
-    }),
-
+    AuthModule,
     UsersModule,
     DoctorModule,
     PatientModule,
-    AuthModule,
   ],
-
   controllers: [AppController],
   providers: [AppService],
 })

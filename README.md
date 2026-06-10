@@ -17,3 +17,4 @@ POST /doctor/onboard
 GET /doctor/:id
 POST /patient/profile
 GET /patient/profile
+

@@ -23,12 +23,16 @@ exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             config_1.ConfigModule.forRoot({ isGlobal: true }),
-            typeorm_1.TypeOrmModule.forRoot({
-                type: 'postgres',
-                url: process.env.DATABASE_URL,
-                entities: [__dirname + '/**/*.entity{.ts,.js}'],
-                synchronize: false,
-                ssl: { rejectUnauthorized: false },
+            typeorm_1.TypeOrmModule.forRootAsync({
+                imports: [config_1.ConfigModule],
+                inject: [config_1.ConfigService],
+                useFactory: (config) => ({
+                    type: 'postgres',
+                    url: config.get('DATABASE_URL'),
+                    entities: [__dirname + '/**/*.entity{.ts,.js}'],
+                    synchronize: false,
+                    ssl: { rejectUnauthorized: false },
+                }),
             }),
             auth_module_1.AuthModule,
             users_module_1.UsersModule,

@@ -1,20 +1,3 @@
-import { Injectable } from '@nestjs/common';
-
-@Injectable()
-export class UsersService {
-  private users: any[] = [];
-
-  create(user: any) {
-    this.users.push(user);
-    return user;
-  }
-
-  findByEmail(email: string) {
-    return this.users.find(
-      (user) => user.email === email,
-    );
-  }
-}
 import {
   Injectable,
   ConflictException,
@@ -34,11 +17,9 @@ export class UsersService {
     const exists = await this.userRepo.findOne({
       where: { email: user.email },
     });
-
     if (exists) {
       throw new ConflictException('Email already registered');
     }
-
     const newUser = this.userRepo.create(user);
     return this.userRepo.save(newUser);
   }

@@ -12,11 +12,11 @@ import { JwtStrategy } from './jwt.strategy';
     UsersModule,
     PassportModule,
     JwtModule.register({
-      secret: 'secret123',
-      signOptions: {
-        expiresIn: '1d',
-      },
-    }),
+  secret: 'secret123',
+  signOptions: {
+    expiresIn: '1d',
+  },
+}),
   ],
   controllers: [AuthController],
   providers: [

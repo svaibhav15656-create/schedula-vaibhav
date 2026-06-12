@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RecurringAvailability } from './entities/recurring-availability.entity';
 import { CustomAvailability } from './entities/custom-availability.entity';
+import { DoctorProfile } from './entities/doctor-profile.entity';
 import { CreateRecurringAvailabilityDto } from './dto/create-recurring-availability.dto';
 import { CreateCustomAvailabilityDto } from './dto/create-custom-availability.dto';
 
@@ -17,12 +18,19 @@ export class AvailabilityService {
     private recurringRepo: Repository<RecurringAvailability>,
     @InjectRepository(CustomAvailability)
     private customRepo: Repository<CustomAvailability>,
+    @InjectRepository(DoctorProfile)
+    private doctorRepo: Repository<DoctorProfile>,
   ) {}
 
-  private isOverlapping(
-    start1: string, end1: string,
-    start2: string, end2: string,
-  ): boolean {
+  private async getDoctorId(userId: string): Promise<string> {
+    const doctor = await this.doctorRepo.findOne({ where: { userId } });
+    if (!doctor) {
+      throw new NotFoundException('Doctor profile not found. Please onboard first.');
+    }
+    return doctor.id;
+  }
+
+  private isOverlapping(start1: string, end1: string, start2: string, end2: string): boolean {
     return start1 < end2 && start2 < end1;
   }
 
@@ -30,7 +38,9 @@ export class AvailabilityService {
     return start < end;
   }
 
-  async createRecurring(doctorId: string, dto: CreateRecurringAvailabilityDto) {
+  async createRecurring(userId: string, dto: CreateRecurringAvailabilityDto) {
+    const doctorId = await this.getDoctorId(userId);
+
     if (!this.isValidTimeRange(dto.startTime, dto.endTime)) {
       throw new BadRequestException('End time must be after start time');
     }
@@ -56,7 +66,8 @@ export class AvailabilityService {
     return this.recurringRepo.save(availability);
   }
 
-  async getRecurring(doctorId: string) {
+  async getRecurring(userId: string) {
+    const doctorId = await this.getDoctorId(userId);
     const slots = await this.recurringRepo.find({ where: { doctorId } });
     if (slots.length === 0) {
       return { message: 'No recurring availability found', data: [] };
@@ -64,7 +75,8 @@ export class AvailabilityService {
     return { data: slots };
   }
 
-  async updateRecurring(doctorId: string, id: string, dto: Partial<CreateRecurringAvailabilityDto>) {
+  async updateRecurring(userId: string, id: string, dto: Partial<CreateRecurringAvailabilityDto>) {
+    const doctorId = await this.getDoctorId(userId);
     const slot = await this.recurringRepo.findOne({ where: { id, doctorId } });
     if (!slot) {
       throw new NotFoundException('Availability slot not found');
@@ -81,7 +93,8 @@ export class AvailabilityService {
     return this.recurringRepo.save(slot);
   }
 
-  async deleteRecurring(doctorId: string, id: string) {
+  async deleteRecurring(userId: string, id: string) {
+    const doctorId = await this.getDoctorId(userId);
     const slot = await this.recurringRepo.findOne({ where: { id, doctorId } });
     if (!slot) {
       throw new NotFoundException('Availability slot not found');
@@ -90,7 +103,9 @@ export class AvailabilityService {
     return { message: 'Availability slot deleted successfully' };
   }
 
-  async createOverride(doctorId: string, dto: CreateCustomAvailabilityDto) {
+  async createOverride(userId: string, dto: CreateCustomAvailabilityDto) {
+    const doctorId = await this.getDoctorId(userId);
+
     if (!this.isValidTimeRange(dto.startTime, dto.endTime)) {
       throw new BadRequestException('End time must be after start time');
     }
@@ -109,7 +124,9 @@ export class AvailabilityService {
     return this.customRepo.save(override);
   }
 
-  async getByDate(doctorId: string, date: string) {
+  async getByDate(userId: string, date: string) {
+    const doctorId = await this.getDoctorId(userId);
+
     if (!date) {
       throw new BadRequestException('Date is required');
     }
